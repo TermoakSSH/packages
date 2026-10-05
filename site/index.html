@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Termoak packages</title>
+<meta name="description" content="Signed APT, RPM and pacman repositories for Termoak.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect x='16' y='16' width='480' height='480' rx='108' fill='%23182316'/%3E%3Cellipse cx='300' cy='300' rx='118' ry='150' transform='rotate(-28 300 300)' fill='%237d9a2c'/%3E%3Cpath d='M92 318l70 48-70 48' stroke='%23e8f0d8' stroke-width='30' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M182 414h92' stroke='%23e8f0d8' stroke-width='30' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f5f7f2; --surface: #ffffff; --border: #dce3d6; --text: #1b2318;
+  --muted: #5b6855; --accent: #4f9d22; --accent-text: #3a7a14;
+  --code-bg: #0c100d; --code-text: #e8f0d8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c100d; --surface: #141b15; --border: #232e25; --text: #e8eee4;
+    --muted: #8e9b89; --accent: #6fbf3b; --accent-text: #9fd36b;
+    --code-bg: #0a0e0b; --code-text: #e8f0d8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+header svg { width: 56px; height: 56px; flex: none; }
+header h1 { margin: 0; font-size: 1.7rem; }
+header p { margin: 2px 0 0; color: var(--muted); }
+.lang { margin-left: auto; display: flex; gap: 4px; }
+.lang button {
+  font: inherit; font-size: .85rem; padding: 4px 10px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 6px;
+}
+.lang button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-text); }
+h2 { margin: 40px 0 8px; font-size: 1.25rem; }
+h3 { margin: 24px 0 6px; font-size: 1.02rem; }
+a { color: var(--accent-text); }
+code { font: .9em/1.4 ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace; }
+pre {
+  background: var(--code-bg); color: var(--code-text); padding: 14px 16px;
+  border-radius: 8px; overflow-x: auto; margin: 8px 0; position: relative;
+}
+pre code { font-size: .85rem; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px 18px 14px; margin-top: 16px; }
+table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: .9rem; }
+.fpr { white-space: pre-wrap; font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace; word-break: break-all; }
+.muted { color: var(--muted); font-size: .92rem; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
+[data-lang] { display: none; }
+html[lang="en"] [data-lang="en"], html[lang="es"] [data-lang="es"] { display: revert; }
+footer { margin-top: 48px; color: var(--muted); font-size: .88rem; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <svg viewBox="0 0 512 512" aria-hidden="true">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f2a1c"/><stop offset="1" stop-color="#0e140d"/></linearGradient>
+      <radialGradient id="olive" cx="0.38" cy="0.35" r="0.75"><stop offset="0" stop-color="#b5cc5a"/><stop offset="0.55" stop-color="#7d9a2c"/><stop offset="1" stop-color="#4e6317"/></radialGradient>
+    </defs>
+    <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bg)"/>
+    <path d="M322 118c52-34 110-30 138-12-18 44-68 86-128 84-10-24-13-50-10-72z" fill="#6f8f3a"/>
+    <path d="M332 176c30-20 64-38 104-58" stroke="#3f5520" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <ellipse cx="300" cy="300" rx="118" ry="150" transform="rotate(-28 300 300)" fill="url(#olive)"/>
+    <ellipse cx="262" cy="232" rx="30" ry="18" transform="rotate(-28 262 232)" fill="#e6f0b4" opacity="0.55"/>
+    <path d="M92 318l70 48-70 48" stroke="#e8f0d8" stroke-width="30" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M182 414h92" stroke="#e8f0d8" stroke-width="30" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <h1>Termoak packages</h1>
+    <p data-lang="en">Signed Linux repositories for the Termoak SSH client and server.</p>
+    <p data-lang="es">Repositorios Linux firmados del cliente y el servidor SSH Termoak.</p>
+  </div>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-set-lang="en">English</button>
+    <button type="button" data-set-lang="es">Español</button>
+  </div>
+</header>
+
+<div class="card">
+  <h2 data-lang="en">Packages</h2>
+  <h2 data-lang="es">Paquetes</h2>
+  <table>
+    <thead>
+      <tr data-lang="en"><th>Package</th><th>Version</th><th>Architectures</th></tr>
+      <tr data-lang="es"><th>Paquete</th><th>Versión</th><th>Arquitecturas</th></tr>
+    </thead>
+    <tbody>
+@VERSIONS@
+    </tbody>
+  </table>
+  <p class="muted" data-lang="en"><code>termoak</code> is the desktop app (command <code>termoak-desktop</code>), <code>termoak-cli</code> the command-line client (<code>termoak</code>) and <code>termoak-server</code> the self-hosted server with its systemd units. They need glibc 2.34 or newer (2.35 for the desktop app): Debian 12+, Ubuntu 22.04+, Fedora, RHEL/Alma/Rocky 9+ (server and CLI), openSUSE Tumbleweed and Leap 16, Arch Linux.</p>
+  <p class="muted" data-lang="es"><code>termoak</code> es la app de escritorio (comando <code>termoak-desktop</code>), <code>termoak-cli</code> el cliente de línea de comandos (<code>termoak</code>) y <code>termoak-server</code> el servidor autoalojado con sus unidades de systemd. Necesitan glibc 2.34 o más reciente (2.35 para el escritorio): Debian 12+, Ubuntu 22.04+, Fedora, RHEL/Alma/Rocky 9+ (servidor y CLI), openSUSE Tumbleweed y Leap 16, Arch Linux.</p>
+</div>
+
+<nav class="toc">
+  <a href="#apt">Debian / Ubuntu</a>
+  <a href="#dnf">Fedora / RHEL</a>
+  <a href="#zypper">openSUSE</a>
+  <a href="#pacman">Arch Linux</a>
+  <a href="#key" data-lang="en">Signing key</a>
+  <a href="#key" data-lang="es">Clave de firma</a>
+</nav>
+
+<h2 id="apt">Debian, Ubuntu, Linux Mint, Pop!_OS, Raspberry Pi OS (64-bit)</h2>
+<pre><code>sudo install -d -m 0755 /usr/share/keyrings
+curl -fsSL https://pkg.termoak.com/termoak.gpg | sudo tee /usr/share/keyrings/termoak.gpg &gt;/dev/null
+sudo tee /etc/apt/sources.list.d/termoak.sources &gt;/dev/null &lt;&lt;'EOF'
+Types: deb
+URIs: https://pkg.termoak.com/deb
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/termoak.gpg
+EOF
+sudo apt update
+sudo apt install termoak          # desktop
+sudo apt install termoak-cli      # CLI
+sudo apt install termoak-server   # server</code></pre>
+
+<h2 id="dnf">Fedora, RHEL, AlmaLinux, Rocky Linux</h2>
+<p data-lang="en">Fedora 41 and newer (dnf5):</p>
+<p data-lang="es">Fedora 41 y posteriores (dnf5):</p>
+<pre><code>sudo dnf config-manager addrepo --from-repofile=https://pkg.termoak.com/rpm/termoak.repo
+sudo dnf install termoak termoak-cli termoak-server</code></pre>
+<p data-lang="en">RHEL, AlmaLinux, Rocky Linux 9+ and older Fedora (dnf4):</p>
+<p data-lang="es">RHEL, AlmaLinux, Rocky Linux 9+ y Fedora anteriores (dnf4):</p>
+<pre><code>sudo curl -fsSL -o /etc/yum.repos.d/termoak.repo https://pkg.termoak.com/rpm/termoak.repo
+sudo dnf install termoak-cli termoak-server</code></pre>
+<p class="muted" data-lang="en">dnf asks to import the key the first time; check that the fingerprint matches the one below.</p>
+<p class="muted" data-lang="es">dnf pide importar la clave la primera vez; comprueba que la huella coincide con la de abajo.</p>
+
+<h2 id="zypper">openSUSE Tumbleweed, Leap 16</h2>
+<pre><code>sudo rpm --import https://pkg.termoak.com/termoak.asc
+sudo zypper addrepo --refresh https://pkg.termoak.com/rpm/termoak.repo
+sudo zypper refresh
+sudo zypper install termoak termoak-cli termoak-server</code></pre>
+
+<h2 id="pacman">Arch Linux, Manjaro, EndeavourOS</h2>
+<pre><code>curl -fsSL -o /tmp/termoak.asc https://pkg.termoak.com/termoak.asc
+sudo pacman-key --add /tmp/termoak.asc
+sudo pacman-key --lsign-key @FINGERPRINT@
+sudo tee -a /etc/pacman.conf &gt;/dev/null &lt;&lt;'EOF'
+
+[termoak]
+SigLevel = Required DatabaseRequired
+Server = https://pkg.termoak.com/arch/$arch
+EOF
+sudo pacman -Sy termoak termoak-cli termoak-server</code></pre>
+<p class="muted" data-lang="en">Packages for <code>x86_64</code>; <code>termoak-cli</code> and <code>termoak-server</code> also for <code>aarch64</code> (Arch Linux ARM). The desktop app needs a Vulkan driver (<code>vulkan-radeon</code>, <code>vulkan-intel</code>, <code>nvidia-utils</code> or, without a GPU, <code>vulkan-swrast</code>) and a font such as <code>ttf-dejavu</code>.</p>
+<p class="muted" data-lang="es">Paquetes para <code>x86_64</code>; <code>termoak-cli</code> y <code>termoak-server</code> también para <code>aarch64</code> (Arch Linux ARM). La app de escritorio necesita un driver Vulkan (<code>vulkan-radeon</code>, <code>vulkan-intel</code>, <code>nvidia-utils</code> o, sin GPU, <code>vulkan-swrast</code>) y una fuente como <code>ttf-dejavu</code>.</p>
+
+<h2 data-lang="en">After installing the server</h2>
+<h2 data-lang="es">Después de instalar el servidor</h2>
+<p data-lang="en">The package creates the <code>termoak</code> system user, <code>/etc/termoak/config.toml</code> and <code>/var/lib/termoak</code>, but does not start anything. Review the configuration and then:</p>
+<p data-lang="es">El paquete crea el usuario de sistema <code>termoak</code>, <code>/etc/termoak/config.toml</code> y <code>/var/lib/termoak</code>, pero no arranca nada. Revisa la configuración y después:</p>
+<pre><code>sudo systemctl enable --now termoak-sessions termoak-server</code></pre>
+<p class="muted" data-lang="en">Deployment guide: <a href="https://github.com/TermoakSSH/server/blob/main/docs/DEPLOYMENT.md">docs/DEPLOYMENT.md</a>.</p>
+<p class="muted" data-lang="es">Guía de despliegue (en inglés): <a href="https://github.com/TermoakSSH/server/blob/main/docs/DEPLOYMENT.md">docs/DEPLOYMENT.md</a>.</p>
+
+<section id="key">
+<h2 data-lang="en">Signing key</h2>
+<h2 data-lang="es">Clave de firma</h2>
+<div class="card">
+  <p data-lang="en">Every repository and package is signed with this OpenPGP key (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
+  <p data-lang="es">Todos los repositorios y paquetes se firman con esta clave OpenPGP (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
+  <p class="fpr">@FINGERPRINT_SPACED@</p>
+  <p><a href="termoak.asc">termoak.asc</a> (ASCII armored) · <a href="termoak.gpg">termoak.gpg</a> (binary, for APT <code>Signed-By</code>)</p>
+</div>
+</section>
+
+<footer>
+  <p data-lang="en">Termoak is open source (AGPL-3.0) by Ohz Digital SL · <a href="https://termoak.com">termoak.com</a> · <a href="https://github.com/TermoakSSH">GitHub</a> · Updated @UPDATED@</p>
+  <p data-lang="es">Termoak es código abierto (AGPL-3.0) de Ohz Digital SL · <a href="https://termoak.com/es/">termoak.com</a> · <a href="https://github.com/TermoakSSH">GitHub</a> · Actualizado el @UPDATED@</p>
+</footer>
+</main>
+<script>
+(function () {
+  var html = document.documentElement;
+  function set(lang) {
+    html.lang = lang;
+    document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-set-lang") === lang));
+    });
+    try { localStorage.setItem("lang", lang); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem("lang"); } catch (e) {}
+  set(saved || ((navigator.language || "en").slice(0, 2) === "es" ? "es" : "en"));
+  document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+    b.addEventListener("click", function () { set(b.getAttribute("data-set-lang")); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+# nfpm config for `termoak-server`: the server, its configuration, the
+# systemd units (server and session holder) and the `termoak` system user.
+# The services are not enabled or started on install.
+name: termoak-server
+arch: ${PKG_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+release: ${PKG_RELEASE}
+section: net
+priority: optional
+maintainer: Ohz Digital SL <packages@termoak.com>
+vendor: Ohz Digital SL
+homepage: https://termoak.com
+license: AGPL-3.0-only
+description: |-
+  SSH client with AI - self-hosted server
+  The Termoak server syncs hosts, keys and snippets end-to-end encrypted,
+  keeps SSH sessions alive on the server, shares them with teams and runs
+  the AI engine. Includes the systemd units termoak-server and
+  termoak-sessions (session holder), which are not started automatically.
+
+contents:
+  - src: ./termoak-server
+    dst: /usr/bin/termoak-server
+    file_info: {mode: 0755}
+  - src: ./config.toml
+    dst: /etc/termoak/config.toml
+    type: config|noreplace
+    file_info: {mode: 0640}
+  - dst: /etc/termoak
+    type: dir
+    file_info: {mode: 0755}
+  - src: ./termoak-server.service
+    dst: /usr/lib/systemd/system/termoak-server.service
+    file_info: {mode: 0644}
+  - src: ./termoak-sessions.service
+    dst: /usr/lib/systemd/system/termoak-sessions.service
+    file_info: {mode: 0644}
+  - src: ./sysusers.conf
+    dst: /usr/lib/sysusers.d/termoak.conf
+    file_info: {mode: 0644}
+  - src: ./tmpfiles.conf
+    dst: /usr/lib/tmpfiles.d/termoak.conf
+    file_info: {mode: 0644}
+  - src: ./README.md
+    dst: /usr/share/doc/termoak-server/README.md
+    file_info: {mode: 0644}
+  - src: ./config.example.toml
+    dst: /usr/share/doc/termoak-server/config.example.toml
+    file_info: {mode: 0644}
+  - src: ./copyright
+    dst: /usr/share/doc/termoak-server/copyright
+    file_info: {mode: 0644}
+    packager: deb
+  - src: ./LICENSE
+    dst: /usr/share/licenses/termoak-server/LICENSE
+    file_info: {mode: 0644}
+    packager: rpm
+  - src: ./LICENSE
+    dst: /usr/share/licenses/termoak-server/LICENSE
+    file_info: {mode: 0644}
+    packager: archlinux
+
+scripts:
+  preinstall: ./scripts/preinstall.sh
+  postinstall: ./scripts/postinstall.sh
+  preremove: ./scripts/preremove.sh
+  postremove: ./scripts/postremove.sh
+
+# Links only glibc and libgcc_s (readelf).
+overrides:
+  deb:
+    depends:
+      - libc6 (>= ${GLIBC_MIN})
+      - libgcc-s1
+    recommends:
+      - systemd
+  rpm:
+    # Linked sonames and symbol versions, as rpm's elfdeps would generate them.
+    depends:
+      - "@ELF_REQUIRES@"
+    recommends:
+      - systemd
+  archlinux:
+    depends:
+      - glibc>=${GLIBC_MIN}
+      - gcc-libs
+
+deb:
+  compression: xz
+
+rpm:
+  compression: zstd
+
+archlinux:
+  packager: Ohz Digital SL <packages@termoak.com>
+  scripts:
+    postupgrade: ./scripts/postinstall.sh

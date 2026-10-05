@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Termoak
+GenericName=SSH Client
+GenericName[es]=Cliente SSH
+Comment=SSH client with AI
+Comment[es]=Cliente SSH con IA
+Exec=termoak-desktop
+Icon=termoak
+Terminal=false
+Categories=Network;System;TerminalEmulator;
+Keywords=ssh;sftp;terminal;remote;server;ai;
+StartupWMClass=com.termoak.Termoak
+StartupNotify=true

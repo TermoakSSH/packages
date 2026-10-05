@@ -1,0 +1,63 @@
+# nfpm config for `termoak-cli`, the `termoak` command-line client.
+name: termoak-cli
+arch: ${PKG_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+release: ${PKG_RELEASE}
+section: net
+priority: optional
+maintainer: Ohz Digital SL <packages@termoak.com>
+vendor: Ohz Digital SL
+homepage: https://termoak.com
+license: AGPL-3.0-only
+description: |-
+  SSH client with AI - command-line client
+  `termoak` connects to SSH hosts, runs commands in parallel, transfers files
+  over SFTP, opens tunnels, shares terminals and manages hosts, keys and
+  snippets, synced with a Termoak server.
+
+contents:
+  - src: ./termoak
+    dst: /usr/bin/termoak
+    file_info: {mode: 0755}
+  - src: ./README.md
+    dst: /usr/share/doc/termoak-cli/README.md
+    file_info: {mode: 0644}
+  - src: ./copyright
+    dst: /usr/share/doc/termoak-cli/copyright
+    file_info: {mode: 0644}
+    packager: deb
+  - src: ./LICENSE
+    dst: /usr/share/licenses/termoak-cli/LICENSE
+    file_info: {mode: 0644}
+    packager: rpm
+  - src: ./LICENSE
+    dst: /usr/share/licenses/termoak-cli/LICENSE
+    file_info: {mode: 0644}
+    packager: archlinux
+
+# Links only glibc and libgcc_s (readelf).
+overrides:
+  deb:
+    depends:
+      - libc6 (>= ${GLIBC_MIN})
+      - libgcc-s1
+    suggests:
+      - gnome-keyring | kwalletmanager
+  rpm:
+    # Linked sonames and symbol versions, as rpm's elfdeps would generate them.
+    depends:
+      - "@ELF_REQUIRES@"
+  archlinux:
+    depends:
+      - glibc>=${GLIBC_MIN}
+      - gcc-libs
+
+deb:
+  compression: xz
+
+rpm:
+  compression: zstd
+
+archlinux:
+  packager: Ohz Digital SL <packages@termoak.com>

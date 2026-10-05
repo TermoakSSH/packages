@@ -1,0 +1,131 @@
+# nfpm config for `termoak`, the Termoak desktop app (amd64 only for now).
+# Rendered by scripts/build-repo.sh from a staging directory that holds the
+# release binary, the desktop entry and the icons; ${PKG_*} come from there.
+name: termoak
+arch: ${PKG_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+release: ${PKG_RELEASE}
+section: net
+priority: optional
+maintainer: Ohz Digital SL <packages@termoak.com>
+vendor: Ohz Digital SL
+homepage: https://termoak.com
+license: AGPL-3.0-only
+description: |-
+  SSH client with AI - desktop app
+  Termoak is an SSH client with an AI assistant, SFTP, port forwarding,
+  snippets, encrypted sync and sessions that live on your own Termoak
+  server. This package installs the desktop app (X11 and Wayland, rendered
+  with Vulkan).
+
+contents:
+  - src: ./termoak-desktop
+    dst: /usr/bin/termoak-desktop
+    file_info: {mode: 0755}
+  - src: ./com.termoak.Termoak.desktop
+    dst: /usr/share/applications/com.termoak.Termoak.desktop
+    file_info: {mode: 0644}
+  - src: ./icons/termoak.svg
+    dst: /usr/share/icons/hicolor/scalable/apps/termoak.svg
+    file_info: {mode: 0644}
+  - src: ./icons/16/termoak.png
+    dst: /usr/share/icons/hicolor/16x16/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/24/termoak.png
+    dst: /usr/share/icons/hicolor/24x24/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/32/termoak.png
+    dst: /usr/share/icons/hicolor/32x32/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/48/termoak.png
+    dst: /usr/share/icons/hicolor/48x48/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/64/termoak.png
+    dst: /usr/share/icons/hicolor/64x64/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/128/termoak.png
+    dst: /usr/share/icons/hicolor/128x128/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/256/termoak.png
+    dst: /usr/share/icons/hicolor/256x256/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./icons/512/termoak.png
+    dst: /usr/share/icons/hicolor/512x512/apps/termoak.png
+    file_info: {mode: 0644}
+  - src: ./copyright
+    dst: /usr/share/doc/termoak/copyright
+    file_info: {mode: 0644}
+    packager: deb
+  - src: ./LICENSE
+    dst: /usr/share/licenses/termoak/LICENSE
+    file_info: {mode: 0644}
+    packager: rpm
+  - src: ./LICENSE
+    dst: /usr/share/licenses/termoak/LICENSE
+    file_info: {mode: 0644}
+    packager: archlinux
+
+# Runtime libraries. Linked: libxcb, libxkbcommon, libxkbcommon-x11 and
+# glibc. Loaded at run time (dlopen): the Vulkan loader, libwayland-client
+# and, for the GL fallback, libEGL/libwayland-egl. Fonts are found through
+# the fontconfig files with a built-in parser (no libfontconfig), so only
+# fonts are needed. ${GLIBC_MIN} is the newest GLIBC_x.y symbol version the
+# binary uses (readelf).
+overrides:
+  deb:
+    depends:
+      - libc6 (>= ${GLIBC_MIN})
+      - libgcc-s1
+      - libxcb1
+      - libxkbcommon0
+      - libxkbcommon-x11-0
+      - libvulkan1
+      - libwayland-client0
+    recommends:
+      - mesa-vulkan-drivers | vulkan-icd
+      - libegl1
+      - libwayland-egl1
+      - fonts-dejavu-core | fonts-noto-core
+    suggests:
+      - gnome-keyring | kwalletmanager
+  rpm:
+    # By soname, so the same package resolves on Fedora/RHEL (vulkan-loader,
+    # libxkbcommon-x11...) and openSUSE (libvulkan1, libxkbcommon-x11-0...).
+    # @ELF_REQUIRES@ is replaced with the linked sonames and symbol versions
+    # (as rpm's elfdeps would generate them); the rest are dlopen()ed.
+    depends:
+      - "@ELF_REQUIRES@"
+      - libvulkan.so.1()(64bit)
+      - libwayland-client.so.0()(64bit)
+    recommends:
+      # Software Vulkan (lavapipe) for machines without a GPU driver:
+      # Fedora/RHEL name, then openSUSE name (weak deps that do not exist
+      # are ignored).
+      - mesa-vulkan-drivers
+      - libvulkan_lvp
+      - libEGL.so.1()(64bit)
+      - libwayland-egl.so.1()(64bit)
+      - dejavu-sans-mono-fonts
+      - dejavu-fonts
+  archlinux:
+    depends:
+      - glibc>=${GLIBC_MIN}
+      - gcc-libs
+      - libxcb
+      - libxkbcommon
+      - libxkbcommon-x11
+      - vulkan-icd-loader
+      - wayland
+    # nfpm has no optdepends for pacman: a Vulkan driver (vulkan-driver:
+    # vulkan-radeon, vulkan-intel, nvidia-utils or vulkan-swrast) and a font
+    # (ttf-font) are documented on the index page and in the README.
+
+deb:
+  compression: xz
+
+rpm:
+  compression: zstd
+
+archlinux:
+  packager: Ohz Digital SL <packages@termoak.com>
