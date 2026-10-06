@@ -85,7 +85,11 @@ latest_version() {
 import json, sys
 prefix = sys.argv[1]
 def key(v):
-    return [int(x) if x.isdigit() else x for x in v.replace("-", ".").split(".")]
+    # Semver: 0.4.0-next.1 < 0.4.0 (a pre-release sorts before its release).
+    core, _, pre = v.partition("-")
+    nums = [int(x) if x.isdigit() else 0 for x in core.split(".")]
+    rest = [(0, int(x), "") if x.isdigit() else (1, 0, x) for x in pre.split(".")] if pre else []
+    return (nums, 0 if pre else 1, rest)
 vs = [r["tag_name"][len(prefix):] for r in json.load(sys.stdin)
       if not r["draft"] and not r["prerelease"] and r["tag_name"].startswith(prefix)]
 if not vs:
