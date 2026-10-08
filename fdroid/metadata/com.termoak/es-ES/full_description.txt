@@ -1,0 +1,33 @@
+Termoak es un cliente SSH moderno para administrar tus servidores desde el móvil o la tablet, con las mismas sesiones, servidores y claves que en tu ordenador.
+
+SESIONES QUE NO SE CORTAN
+Abre la terminal en el servidor de Termoak y sigue donde la dejaste: cambia de dispositivo, pierde la cobertura o bloquea el móvil y, al volver, todo sigue ahí con su historial y sus procesos.
+
+TERMINAL COMPLETA
+• SSH con contraseña, claves (Ed25519, RSA, ECDSA) e identidades reutilizables
+• Jump hosts, proxy, agent forwarding y keep-alive
+• Barra de teclas extra (Esc, Ctrl, Tab, flechas…) y gestos
+• Snippets: guarda comandos y lánzalos en uno o varios servidores a la vez
+• Reenvío de puertos (túneles)
+• Aviso antes de pegar varias líneas
+• Detección automática del sistema de cada servidor
+
+TABLETS Y PLEGABLES
+Vista dividida con hasta cuatro terminales y escritura simultánea en todas.
+
+BÓVEDA CIFRADA Y SINCRONIZADA
+Servidores, claves, identidades y snippets cifrados y sincronizados entre todos tus dispositivos. Los secretos nunca viajan en claro. Organízalos en vaults: uno personal, otros compartidos con personas o con tu equipo, con permisos de Editor o Solo uso (conectar sin ver contraseñas).
+
+COMPARTE TU TERMINAL
+Invita a una persona, a tu equipo o crea un enlace. Por defecto solo pueden mirar; pueden pedirte el teclado y tú decides cuándo darlo y durante cuánto tiempo.
+
+IA EN SEGUNDO PLANO
+Pide a la IA que investigue un fallo o prepare un despliegue. Trabaja sola y te pide permiso antes de ejecutar algo delicado. Funciona con tus propias claves de API.
+
+VARIAS CUENTAS
+Usa el servidor oficial termoak.com o tu propio servidor de Termoak, incluso varios a la vez.
+
+SEGURIDAD
+Verificación en dos pasos, secretos cifrados y código abierto (AGPL-3.0) para que puedas auditarlo o instalar tu propio servidor.
+
+Gratis, sin anuncios y sin tarjeta. También disponible para Windows, macOS, Linux e iOS.

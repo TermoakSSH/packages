@@ -1,0 +1,104 @@
+# DRAFT for fdroiddata (https://gitlab.com/fdroid/fdroiddata), file
+# metadata/com.termoak.yml. Not submitted: see README.md next to this file
+# for what has to change in TermoakSSH/mobile-android first (fastlane texts,
+# pinned Rust toolchain, path remapping, termoakVersionCode) and for the
+# steps of the merge request. Checked with `fdroid lint` and in the format of
+# `fdroid rewritemeta` (fdroidserver 2.4.2); `fdroid build` has not been run.
+#
+# Name, summary, description, icon and screenshots: fastlane/metadata/android/
+# in the app's repository (to be added there: the same files as
+# fdroid/metadata/com.termoak/ in TermoakSSH/packages).
+# Anti-features: none (reasons in fdroid/metadata/com.termoak.yml of
+# TermoakSSH/packages).
+#
+# Builds: one per ABI, like the GitHub releases (versionCode = 10 * base +
+# ABI: armeabi-v7a 1, arm64-v8a 2; base = X*10000 + Y*100 + Z for X.Y.Z; the
+# universal APK, …0, is not needed in F-Droid). Each one compiles the engine
+# for both ABIs exactly like scripts/release-local.sh and takes one output.
+# `binary` is our APK of the same version and ABI: if F-Droid's build matches
+# it (reproducible build), F-Droid publishes ours, signed by us
+# (AllowedAPKSigningKeys), and installs from GitHub, pkg.termoak.com and
+# f-droid.org update each other. fdroidserver only substitutes %v and %c in
+# it, hence the ABI written in each build instead of an app-level Binaries:.
+#
+# UpdateCheckData needs a termoakVersionCode=<base> line in gradle.properties
+# (see README.md); without it, use AutoUpdateMode: None and new builds by hand.
+Categories:
+  - Connectivity
+  - Development
+  - Internet
+  - System
+License: AGPL-3.0-only
+AuthorName: Ohz Digital SL
+AuthorWebSite: https://termoak.com
+WebSite: https://termoak.com
+SourceCode: https://github.com/TermoakSSH/mobile-android
+IssueTracker: https://github.com/TermoakSSH/mobile-android/issues
+Changelog: https://github.com/TermoakSSH/mobile-android/releases
+
+AutoName: Termoak
+
+RepoType: git
+Repo: https://github.com/TermoakSSH/mobile-android.git
+
+Builds:
+  - versionName: 0.6.1
+    versionCode: 6011
+    commit: android-v0.6.1
+    submodules: true
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential
+    gradle:
+      - yes
+    output: app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk
+    binary:
+      https://github.com/TermoakSSH/mobile-android/releases/download/android-v%v/Termoak-android-v%v-armeabi-v7a.apk
+    srclibs:
+      - rustup@1.28.2
+    build:
+      - bash $$rustup$$/rustup-init.sh -y --default-toolchain 1.99.0 --profile minimal
+        --target aarch64-linux-android,armv7-linux-androideabi
+      - source $HOME/.cargo/env
+      - cargo install --locked cargo-ndk@4.1.2
+      - pushd core
+      - cargo ndk -t arm64-v8a -t armeabi-v7a --platform 26 -o bindings/kotlin/src/main/jniLibs
+        build -p termoak-ffi --lib --profile mobile --locked
+      - popd
+    ndk: 30.0.16248370
+
+  - versionName: 0.6.1
+    versionCode: 6012
+    commit: android-v0.6.1
+    submodules: true
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential
+    gradle:
+      - yes
+    output: app/build/outputs/apk/release/app-arm64-v8a-release-unsigned.apk
+    binary:
+      https://github.com/TermoakSSH/mobile-android/releases/download/android-v%v/Termoak-android-v%v-arm64-v8a.apk
+    srclibs:
+      - rustup@1.28.2
+    build:
+      - bash $$rustup$$/rustup-init.sh -y --default-toolchain 1.99.0 --profile minimal
+        --target aarch64-linux-android,armv7-linux-androideabi
+      - source $HOME/.cargo/env
+      - cargo install --locked cargo-ndk@4.1.2
+      - pushd core
+      - cargo ndk -t arm64-v8a -t armeabi-v7a --platform 26 -o bindings/kotlin/src/main/jniLibs
+        build -p termoak-ffi --lib --profile mobile --locked
+      - popd
+    ndk: 30.0.16248370
+
+AllowedAPKSigningKeys: 392c208a05fb966c38fa36d3853fb80edd4739d28dfd1d27ea7eba68fc1f4748
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^android-v[0-9]+\.[0-9]+\.[0-9]+$
+VercodeOperation:
+  - 10*%c+1
+  - 10*%c+2
+UpdateCheckData: gradle.properties|termoakVersionCode=(\d+)|.|termoakVersion=(.*)
+CurrentVersion: 0.6.1
+CurrentVersionCode: 6012

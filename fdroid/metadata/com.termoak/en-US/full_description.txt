@@ -1,0 +1,33 @@
+Termoak is a modern SSH client to manage your servers from your phone or tablet, with the same sessions, hosts and keys as on your computer.
+
+SESSIONS THAT NEVER DROP
+Open the terminal on the Termoak server and pick it up where you left it: switch devices, lose coverage or lock your phone, and when you come back everything is still there, with its history and its processes.
+
+A COMPLETE TERMINAL
+• SSH with passwords, keys (Ed25519, RSA, ECDSA) and reusable identities
+• Jump hosts, proxy, agent forwarding and keep-alive
+• Extra keys bar (Esc, Ctrl, Tab, arrows…) and gestures
+• Snippets: save commands and run them on one or many servers at once
+• Port forwarding (tunnels)
+• Confirmation before pasting several lines
+• Automatic detection of each host's system
+
+TABLETS AND FOLDABLES
+Split view with up to four terminals and broadcast typing to all of them.
+
+ENCRYPTED, SYNCED VAULT
+Hosts, keys, identities and snippets encrypted and synced across all your devices. Secrets never travel in plain text. Organize them in vaults: a personal one, others shared with people or your team, with Editor or Use-only permissions (connect without seeing passwords).
+
+SHARE YOUR TERMINAL
+Invite a person, your team or create a link. By default they can only watch; they can ask for the keyboard and you decide when to give it and for how long.
+
+BACKGROUND AI
+Ask the AI to investigate a failure or prepare a deployment. It works on its own and asks for your approval before running anything sensitive. Works with your own API keys.
+
+SEVERAL ACCOUNTS
+Use the official server termoak.com or your own Termoak server, even several at once.
+
+SECURITY
+Two-step verification, encrypted secrets and open source (AGPL-3.0), so you can audit it or run your own server.
+
+Free, no ads, no card required. Also available for Windows, macOS, Linux and iOS.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Termoak packages</title>
-<meta name="description" content="Signed APT, RPM and pacman repositories for Termoak.">
+<meta name="description" content="Signed APT, RPM, pacman and F-Droid repositories for Termoak.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect x='16' y='16' width='480' height='480' rx='108' fill='%23182316'/%3E%3Cellipse cx='300' cy='300' rx='118' ry='150' transform='rotate(-28 300 300)' fill='%237d9a2c'/%3E%3Cpath d='M92 318l70 48-70 48' stroke='%23e8f0d8' stroke-width='30' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M182 414h92' stroke='%23e8f0d8' stroke-width='30' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
 :root {
@@ -49,8 +49,18 @@ pre code { font-size: .85rem; }
 table { border-collapse: collapse; width: 100%; margin-top: 8px; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-weight: 600; font-size: .9rem; }
+.muted code { word-break: break-all; }
 .fpr { white-space: pre-wrap; font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace; word-break: break-all; }
 .muted { color: var(--muted); font-size: .92rem; }
+.fdroid { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.fdroid .qr { flex: none; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 6px; line-height: 0; }
+.fdroid .qr img { width: 180px; height: 180px; image-rendering: pixelated; }
+.fdroid .steps { flex: 1 1 300px; min-width: 0; }
+.button {
+  display: inline-block; padding: 9px 16px; border-radius: 8px; font-weight: 600;
+  background: var(--accent-text); color: var(--bg); text-decoration: none; margin: 6px 0;
+}
+.button:hover { filter: brightness(1.08); }
 nav.toc { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
 [data-lang] { display: none; }
 html[lang="en"] [data-lang="en"], html[lang="es"] [data-lang="es"] { display: revert; }
@@ -75,8 +85,8 @@ footer { margin-top: 48px; color: var(--muted); font-size: .88rem; }
   </svg>
   <div>
     <h1>Termoak packages</h1>
-    <p data-lang="en">Signed Linux repositories for the Termoak SSH client and server.</p>
-    <p data-lang="es">Repositorios Linux firmados del cliente y el servidor SSH Termoak.</p>
+    <p data-lang="en">Signed Linux and Android (F-Droid) repositories for the Termoak SSH client and server.</p>
+    <p data-lang="es">Repositorios firmados de Linux y Android (F-Droid) del cliente y el servidor SSH Termoak.</p>
   </div>
   <div class="lang" role="group" aria-label="Language">
     <button type="button" data-set-lang="en">English</button>
@@ -105,6 +115,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: .88rem; }
   <a href="#dnf">Fedora / RHEL</a>
   <a href="#zypper">openSUSE</a>
   <a href="#pacman">Arch Linux</a>
+  <a href="#fdroid">Android (F-Droid)</a>
   <a href="#key" data-lang="en">Signing key</a>
   <a href="#key" data-lang="es">Clave de firma</a>
 </nav>
@@ -164,12 +175,34 @@ sudo pacman -Sy termoak termoak-cli termoak-server</code></pre>
 <p class="muted" data-lang="en">Deployment guide: <a href="https://github.com/TermoakSSH/server/blob/main/docs/DEPLOYMENT.md">docs/DEPLOYMENT.md</a>.</p>
 <p class="muted" data-lang="es">Guía de despliegue (en inglés): <a href="https://github.com/TermoakSSH/server/blob/main/docs/DEPLOYMENT.md">docs/DEPLOYMENT.md</a>.</p>
 
+<section id="fdroid">
+<h2>Android (F-Droid)</h2>
+<div class="card fdroid">
+  <a class="qr" href="https://pkg.termoak.com/fdroid/repo?fingerprint=@FDROID_FINGERPRINT@" aria-label="QR code of the repository">
+    <img src="fdroid/qr.svg" alt="QR code: https://pkg.termoak.com/fdroid/repo?fingerprint=@FDROID_FINGERPRINT@" width="180" height="180">
+  </a>
+  <div class="steps">
+    <p data-lang="en">Add this repository to <a href="https://f-droid.org/">F-Droid</a> (or a compatible client such as Droid-ify or Neo Store) to install Termoak and get its updates. On the phone, tap the button; from a computer, scan the QR code with F-Droid (<em>Settings → Repositories → +</em>).</p>
+    <p data-lang="es">Añade este repositorio a <a href="https://f-droid.org/es/">F-Droid</a> (o a un cliente compatible como Droid-ify o Neo Store) para instalar Termoak y recibir sus actualizaciones. En el móvil, pulsa el botón; desde un ordenador, escanea el código QR con F-Droid (<em>Ajustes → Repositorios → +</em>).</p>
+    <p>
+      <a class="button" href="fdroidrepos://pkg.termoak.com/fdroid/repo?fingerprint=@FDROID_FINGERPRINT@"><span data-lang="en">Add to F-Droid</span><span data-lang="es">Añadir a F-Droid</span></a>
+    </p>
+    <p data-lang="en">Or add it by hand, with this address and fingerprint:</p>
+    <p data-lang="es">O añádelo a mano, con esta dirección y huella:</p>
+    <pre><code>https://pkg.termoak.com/fdroid/repo</code></pre>
+    <p class="fpr">@FDROID_FINGERPRINT_SPACED@</p>
+  </div>
+</div>
+<p class="muted" data-lang="en">The repository serves the same APKs as the <a href="https://github.com/TermoakSSH/mobile-android/releases">GitHub releases</a> (Android 8.0 or newer, arm64-v8a and armeabi-v7a), with their original signature (certificate SHA-256 <code>39:2C:20:8A:05:FB:96:6C:38:FA:36:D3:85:3F:B8:0E:DD:47:39:D2:8D:FD:1D:27:EA:7E:BA:68:FC:1F:47:48</code>): an install from GitHub is updated from F-Droid and the other way round. F-Droid checks the repository index with the fingerprint above, a key used only for this index.</p>
+<p class="muted" data-lang="es">El repositorio sirve los mismos APK que las <a href="https://github.com/TermoakSSH/mobile-android/releases">releases de GitHub</a> (Android 8.0 o superior, arm64-v8a y armeabi-v7a), con su firma original (certificado SHA-256 <code>39:2C:20:8A:05:FB:96:6C:38:FA:36:D3:85:3F:B8:0E:DD:47:39:D2:8D:FD:1D:27:EA:7E:BA:68:FC:1F:47:48</code>): una instalación desde GitHub se actualiza desde F-Droid y al revés. F-Droid comprueba el índice del repositorio con la huella de arriba, de una clave que solo firma ese índice.</p>
+</section>
+
 <section id="key">
 <h2 data-lang="en">Signing key</h2>
 <h2 data-lang="es">Clave de firma</h2>
 <div class="card">
-  <p data-lang="en">Every repository and package is signed with this OpenPGP key (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
-  <p data-lang="es">Todos los repositorios y paquetes se firman con esta clave OpenPGP (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
+  <p data-lang="en">Every Linux repository and package is signed with this OpenPGP key (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
+  <p data-lang="es">Todos los repositorios y paquetes de Linux se firman con esta clave OpenPGP (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
   <p class="fpr">@FINGERPRINT_SPACED@</p>
   <p><a href="termoak.asc">termoak.asc</a> (ASCII armored) · <a href="termoak.gpg">termoak.gpg</a> (binary, for APT <code>Signed-By</code>)</p>
 </div>

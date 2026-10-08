@@ -1,7 +1,8 @@
-# Termoak Linux packages
+# Termoak packages
 
 Packaging and signed repositories for [Termoak](https://termoak.com), served
-at **https://pkg.termoak.com**:
+at **https://pkg.termoak.com**: APT, RPM and pacman for Linux, and an
+[F-Droid repository](#android-f-droid) for Android.
 
 | Package          | Contents                                                        | Architectures  |
 |------------------|-----------------------------------------------------------------|----------------|
@@ -14,6 +15,9 @@ The packages are built from the binaries of the published GitHub releases
 [core](https://github.com/TermoakSSH/core), `server-v*` in
 [server](https://github.com/TermoakSSH/server)); nothing is compiled here.
 Formats: `.deb` (APT), `.rpm` (dnf and zypper) and `.pkg.tar.zst` (pacman).
+The Android app (`com.termoak`) goes to the F-Droid repository as the APKs of
+the `android-v*` releases of
+[mobile-android](https://github.com/TermoakSSH/mobile-android), unchanged.
 
 User-facing install instructions are on the index page of the repository,
 generated from [`site/index.html`](site/index.html).
@@ -23,14 +27,22 @@ generated from [`site/index.html`](site/index.html).
 ```
 docker/Dockerfile          tool image (Fedora): nfpm, apt-ftparchive, createrepo_c,
                            rpmsign, repo-add, gpg, rsvg-convert
+docker/fdroid.Dockerfile   F-Droid tool image (Debian 13): fdroidserver, apksigner,
+                           qrencode
 nfpm/<package>.yaml        nfpm configuration of each package
 files/termoak/             desktop entry (com.termoak.Termoak.desktop)
 files/termoak-server/      sysusers.d / tmpfiles.d snippets and maintainer scripts
+fdroid/config.yml          fdroidserver configuration of the F-Droid repository
+fdroid/metadata/           com.termoak.yml and com.termoak/<locale>/ (fastlane
+                           layout: texts, icon, screenshots)
 site/index.html            template of the repository index page (en + es)
 scripts/publish.sh         downloads releases, builds, signs, regenerates the repos
 scripts/build-repo.sh      the part of publish.sh that runs inside the tool image
+scripts/fdroid.sh          updates the F-Droid repository (called by publish.sh)
+scripts/build-fdroid.sh    the part of fdroid.sh that runs inside the F-Droid image
 scripts/test-repo.sh       installs from the staging repo in distro containers
 tests/                     the per-distro test scripts used by test-repo.sh
+docs/fdroid/               draft for the official F-Droid repository (fdroiddata)
 ```
 
 Published layout (`out/repo` by default, then the web root):
@@ -45,14 +57,28 @@ rpm/{x86_64,aarch64}/*.rpm
 rpm/{x86_64,aarch64}/repodata/{repomd.xml,repomd.xml.asc,repomd.xml.key,...}
 arch/{x86_64,aarch64}/*.pkg.tar.zst{,.sig}
 arch/{x86_64,aarch64}/termoak.{db,files}{,.sig} -> termoak.{db,files}.tar.zst{,.sig}
+fdroid/qr.svg  fdroid/qr.png                        QR code of the repository link
+fdroid/repo/{entry.jar,entry.json,index-v2.json,index-v1.jar,index-v1.json,diff/}
+fdroid/repo/Termoak-android-v<version>-{arm64-v8a,armeabi-v7a,universal}.apk
+fdroid/repo/{com.termoak/,icons*/,index.html,index.png,status/...}  (fdroidserver)
 ```
+
+fdroid's working directory (generated `config.yml`, metadata copy, and
+`tmp/` with the APK cache and the last indexes, which keep the "added" dates
+stable and feed the index diffs) is `out/fdroid/`, outside the published
+tree.
 
 ## Requirements
 
 Only Docker, `curl`, `python3`, `rsync`, `flock` and `gpg` (to check that the
 key is there) on the host. Everything else runs in the `termoak-packaging`
 image, built from `docker/Dockerfile` the first time (about 470 MB; nfpm is
-downloaded with a pinned SHA-256). Nothing is built on GitHub Actions.
+downloaded with a pinned SHA-256), and in the `termoak-fdroid` image, built
+from `docker/fdroid.Dockerfile` (Debian 13 pinned by digest, fdroidserver
+2.4.2, apksigner 35.0.2 and qrencode 4.1.1 pinned by version; about 2 GB on
+disk, mostly the JDK). Nothing is built on GitHub Actions. On the shared
+build host, run the scripts under the build lock:
+`flock /root/.termoak-build.lock scripts/publish.sh ...`.
 
 The signing key lives in `GNUPGHOME=/root/.config/termoak/repo-gpg` (RSA-4096,
 sign-only, fingerprint `BDD6B45E003E53F1B9DE70932C813822C95C7F5B`). It is
@@ -64,6 +90,7 @@ runs there with `--lock-never` and its agent socket under `/run/user/0`.
 ```sh
 scripts/publish.sh                                   # latest releases -> out/repo
 scripts/publish.sh --deploy /var/www/pkg.termoak.com # ... and copy to the web root
+scripts/publish.sh --only fdroid --deploy /var/www/pkg.termoak.com  # Android only
 ```
 
 What it does:
@@ -88,14 +115,19 @@ What it does:
      stay in the directory for `pacman -U`.
    - `termoak.asc` / `termoak.gpg` (exported from the keyring) and
      `index.html` with the current versions.
-4. With `--deploy DIR`: rsync of the packages first and then of everything
+4. F-Droid (unless `--only` leaves it out): `scripts/fdroid.sh`, see
+   [Android (F-Droid)](#android-f-droid).
+5. With `--deploy DIR`: rsync of the packages and APKs first and then of everything
    else with `--delete-after --delay-updates`, so clients never see metadata
    that points to missing files. **Files in DIR that are not in the staging
    repository are deleted.** If the staging directory is empty and DIR
    already holds a repository, the staging directory is first seeded from it,
-   so the older versions in the pool are kept.
+   so the older versions in the pool are kept. When the F-Droid repository
+   was updated and DIR is the web root, `scripts/fdroid.sh --verify-remote`
+   then checks what https://pkg.termoak.com/fdroid/repo serves.
 
-Other options: `--only termoak,termoak-cli,termoak-server`, `--no-build`,
+Other options: `--only termoak,termoak-cli,termoak-server,fdroid` (with only
+`fdroid`, the APT/RPM/pacman metadata is not touched), `--no-build`,
 `--release N`, `--keep N`, `--out DIR`, `--rebuild-image`. See
 `scripts/publish.sh --help`.
 
@@ -110,6 +142,87 @@ version-release already in the repository is never rebuilt or overwritten.
 ```sh
 scripts/publish.sh --only termoak --desktop 0.2.1
 ```
+
+## Android (F-Droid)
+
+Repository: **https://pkg.termoak.com/fdroid/repo**, signed with its own key
+(not the app's): SHA-256 fingerprint
+
+```
+CB:2F:CC:B0:15:1A:E3:63:2E:05:78:36:4B:75:CD:73:57:FF:5A:09:E6:CB:9F:36:24:FA:A2:26:28:A7:C6:21
+```
+
+Users add it from the index page of pkg.termoak.com: the "Add to F-Droid"
+link (`fdroidrepos://pkg.termoak.com/fdroid/repo?fingerprint=CB2FCCB0…C621`),
+the QR code (`https://pkg.termoak.com/fdroid/repo?fingerprint=…`, which
+F-Droid's scanner and its link handler accept), or by hand in F-Droid's
+*Settings → Repositories → +* with the address and the fingerprint above,
+which F-Droid checks against the index signature.
+
+**What is published.** The APKs of the newest `--keep` (3) published
+`android-v*` releases of TermoakSSH/mobile-android, downloaded from GitHub
+(size and SHA-256 checked against the API's) and published **as they are**:
+never rebuilt or re-signed. They keep the app's own signature (certificate
+SHA-256 `39:2C:20:8A:05:FB:96:6C:38:FA:36:D3:85:3F:B8:0E:DD:47:39:D2:8D:FD:1D:27:EA:7E:BA:68:FC:1F:47:48`),
+so F-Droid updates an install from GitHub and the other way round;
+`build-fdroid.sh` refuses any APK signed by another key. Per version:
+`arm64-v8a` (versionCode `10·base+2`), `armeabi-v7a` (`+1`) and `universal`
+(`+0`). F-Droid handles split APKs: each has its `nativecode` in the index
+and the client installs the highest compatible versionCode, i.e. the APK of
+the device's ABI; the universal one is there for completeness (it is never
+preferred, since the per-ABI APKs cover the same ABIs). Older releases are
+removed from the repository (no archive section: `archive_older: 0`).
+
+**Metadata.** `fdroid/metadata/com.termoak.yml` (license, links, categories,
+anti-features) and `fdroid/metadata/com.termoak/<locale>/` in fastlane layout:
+`title.txt`, `short_description.txt` (≤ 80 characters) and
+`full_description.txt` for `en-US` and `es-ES` (the Play Store texts), and
+`en-US/images/icon.png` (512 px, rendered from the app icon `icon.svg`).
+Screenshots: put them in `<locale>/images/phoneScreenshots/` (`1.png`,
+`2.png`... phone portrait; `en-US` is the fallback for other languages) and
+publish again. Anti-features: none (the reasons are in `com.termoak.yml`).
+
+**Index signing key.** `/root/.config/termoak/fdroid/` (0700): `keystore.p12`
+(PKCS#12, RSA 4096, alias `termoak-fdroid`, valid until 2054,
+`CN=Termoak F-Droid repository, O=Ohz Digital SL, C=ES`), `keystore.pass`
+(its password) and `repo-cert.pem` (the public certificate), files 0600
+except the certificate. Mounted read-only into the container; fdroid reads
+the password from an environment variable (`fdroid/config.yml` has no
+secrets). Keep a copy off this machine: with another key, every user would
+have to remove and add the repository again. `scripts/fdroid.sh` checks the
+keystore against the fingerprint above (`TERMOAK_FDROID_FINGERPRINT`).
+
+**What `scripts/fdroid.sh` does** (also usable on its own: `--keep`,
+`--no-build`, `--out`, `--rebuild-image`, `--verify-remote`):
+
+1. Lists the releases with the GitHub API and downloads the missing APKs to
+   `out/repo/fdroid/repo/`; drops the APKs of older releases.
+2. In the `termoak-fdroid` image: checks every APK's signer with apksigner,
+   runs `fdroid update` (index-v1, index-v2, entry, diffs, signed with the
+   repository key), then parses the result: `entry.jar`, `index-v1.jar` and
+   `index.jar` signed by the repository key, `entry.json` matching
+   `index-v2.json`, one entry per APK with its size, SHA-256 and signer.
+3. Writes `fdroid/qr.svg` and `qr.png` with qrencode for the index page.
+
+`--verify-remote` downloads the published index with fdroidserver's own
+client code (`index.download_repo_index_v2/v1`, which checks the JAR
+signature against the fingerprint) and checks with `HEAD` that every APK is
+served with its size.
+
+**On each new Android release** (after `scripts/release-local.sh publish
+android` in mobile-android):
+
+```sh
+flock /root/.termoak-build.lock scripts/publish.sh --only fdroid --deploy /var/www/pkg.termoak.com
+```
+
+Caddy serves the index files (`entry.jar`, `index-v1.jar`, `index-v2.json`,
+`diff/`...) with `Cache-Control: no-cache` (block `pkg.termoak.com` in
+`/etc/caddy/Caddyfile`); MIME types come from `/etc/mime.types`
+(`application/java-archive`, `application/vnd.android.package-archive`).
+
+**Official F-Droid repository.** A draft recipe for fdroiddata and the steps
+are in [`docs/fdroid/`](docs/fdroid/README.md).
 
 ## Package details
 
@@ -227,6 +340,8 @@ indexed but not installed by the tests (no emulation on the build host).
 - arm64 desktop builds.
 - Publishing the key to a keyserver (the instructions download it from
   pkg.termoak.com instead).
+- F-Droid screenshots (`fdroid/metadata/com.termoak/*/images/phoneScreenshots/`)
+  and the inclusion in f-droid.org ([draft](docs/fdroid/README.md)).
 
 ## License
 

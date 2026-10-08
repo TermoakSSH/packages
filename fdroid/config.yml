@@ -1,0 +1,25 @@
+# fdroidserver configuration of the F-Droid repository at
+# https://pkg.termoak.com/fdroid/repo (used by scripts/build-fdroid.sh inside
+# the termoak-fdroid image). No secrets here: the index signing keystore and
+# its password are mounted from /root/.config/termoak/fdroid/ at run time.
+repo_url: https://pkg.termoak.com/fdroid/repo
+repo_name: Termoak
+repo_icon: icon.png
+repo_description: >-
+  Official F-Droid repository of Termoak, the open-source SSH client by Ohz
+  Digital SL. It serves the same APKs as the GitHub releases
+  (github.com/TermoakSSH/mobile-android), signed by the developer, so the
+  app updates over an install from GitHub and the other way round.
+
+# The APKs kept (the newest releases) are chosen by scripts/fdroid.sh: no
+# archive section.
+archive_older: 0
+make_current_version_link: false
+
+repo_keyalias: termoak-fdroid
+keystore: /keys/keystore.p12
+keystorepass:
+  env: FDROID_KEYSTORE_PASS
+keypass:
+  env: FDROID_KEYSTORE_PASS
+keydname: CN=Termoak F-Droid repository, O=Ohz Digital SL, C=ES

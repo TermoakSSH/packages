@@ -1,0 +1,1 @@
+Cliente SSH con sesiones que no se cortan, bóveda cifrada y trabajo en equipo

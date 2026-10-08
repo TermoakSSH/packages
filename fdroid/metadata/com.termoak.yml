@@ -1,0 +1,31 @@
+# Termoak in the F-Droid repository of pkg.termoak.com (binary repository:
+# the APKs are the ones published on GitHub, signed by Ohz Digital SL; they
+# are never rebuilt or re-signed here). Name, summary, description, icon and
+# screenshots: com.termoak/<locale>/ (fastlane layout).
+# See docs/fdroid/com.termoak.yml for the draft of the official F-Droid
+# (fdroiddata) recipe.
+# Anti-features: none. No Google or other proprietary libraries, no
+# tracking or ads (push via Firebase is off in the published builds and its
+# library is not linked). The app talks to SSH hosts and to Termoak servers:
+# the official termoak.com runs the same AGPL server anyone can host
+# (github.com/TermoakSSH/server), so it is not a NonFreeNet service. The
+# background AI runs on the Termoak server, with providers the server admin
+# sets up (local/self-hosted models included) and the user's own API keys
+# for third-party ones; nothing depends on them. If push via Firebase is ever
+# turned on in the APKs, add NonFreeDep (and NonFreeNet for FCM) here.
+Categories:
+  - Connectivity
+  - Development
+  - Internet
+  - System
+License: AGPL-3.0-only
+AuthorName: Ohz Digital SL
+AuthorWebSite: https://termoak.com
+WebSite: https://termoak.com
+SourceCode: https://github.com/TermoakSSH/mobile-android
+IssueTracker: https://github.com/TermoakSSH/mobile-android/issues
+Changelog: https://github.com/TermoakSSH/mobile-android/releases
+
+AutoName: Termoak
+
+AllowedAPKSigningKeys: 392c208a05fb966c38fa36d3853fb80edd4739d28dfd1d27ea7eba68fc1f4748

@@ -7,7 +7,10 @@
 #   /repo   the staging repository (output)
 #   /gnupg  GNUPGHOME with the signing key (read-only)
 # Environment: FPR (signing key fingerprint), KEEP (versions kept per
-# package), PKG_RELEASE (package release of the packages built now).
+# package), PKG_RELEASE (package release of the packages built now),
+# FDROID_FPR (SHA-256 of the F-Droid index certificate, for the index page),
+# SITE_ONLY=1 (only regenerate the index page: scripts/publish.sh --only
+# fdroid).
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -311,6 +314,18 @@ versions_table() {
     [ -n "$v" ] || continue
     printf '<tr><td><code>%s</code></td><td>%s</td><td>%s</td></tr>\n' "$pkg" "$v" "$archs"
   done
+  # Android: the newest version in the F-Droid repository.
+  v="$(android_version)"
+  if [ -n "$v" ]; then
+    printf '<tr><td><a href="#fdroid">Android (F-Droid)</a></td><td>%s</td><td>arm64-v8a, armeabi-v7a</td></tr>\n' "$v"
+  fi
+}
+
+# Newest Android version in the F-Droid repository (from the APK names).
+android_version() {
+  ls -1 "$REPO"/fdroid/repo/Termoak-android-v*.apk 2>/dev/null |
+    sed -n 's|.*/Termoak-android-v\([0-9][^-]*\)\(-[a-z0-9-]*\)\{0,1\}\.apk$|\1|p' |
+    sort -uV | tail -n1 || true
 }
 
 site() {
@@ -320,10 +335,18 @@ site() {
   local spaced table
   spaced="$(echo "$FPR" | sed -E 's/(.{4})/\1 /g; s/ $//; s/^((.{4} ){5})/\1 /')"
   table="$(versions_table)"
+  # F-Droid: the fingerprint as clients show it (AA:BB:...) and as the
+  # repository link takes it (no separators).
+  local ffpr fspaced
+  ffpr="$(echo "${FDROID_FPR:-}" | tr -d ': ' | tr 'a-f' 'A-F')"
+  fspaced="$(echo "$ffpr" | sed -E 's/(..)/\1:/g; s/:$//')"
   FPR="$FPR" SPACED="$spaced" TABLE="$table" UPDATED="$(date -u +%Y-%m-%d)" \
+    FFPR="$ffpr" FSPACED="$fspaced" \
     awk '{
       gsub(/@FINGERPRINT@/, ENVIRON["FPR"]);
       gsub(/@FINGERPRINT_SPACED@/, ENVIRON["SPACED"]);
+      gsub(/@FDROID_FINGERPRINT@/, ENVIRON["FFPR"]);
+      gsub(/@FDROID_FINGERPRINT_SPACED@/, ENVIRON["FSPACED"]);
       gsub(/@UPDATED@/, ENVIRON["UPDATED"]);
       if ($0 ~ /@VERSIONS@/) { print ENVIRON["TABLE"]; next }
       print
@@ -331,15 +354,17 @@ site() {
 }
 
 mkdir -p "$REPO" "$WORK/stage" "$WORK/out"
-if [ -s "$WORK/builds.txt" ]; then
-  while read -r pkg ver arch; do
-    [ -n "$pkg" ] || continue
-    build_one "$pkg" "$ver" "$arch"
-  done <"$WORK/builds.txt"
+if [ "${SITE_ONLY:-0}" != 1 ]; then
+  if [ -s "$WORK/builds.txt" ]; then
+    while read -r pkg ver arch; do
+      [ -n "$pkg" ] || continue
+      build_one "$pkg" "$ver" "$arch"
+    done <"$WORK/builds.txt"
+  fi
+  prune
+  apt_repo
+  rpm_repo
+  arch_repo
 fi
-prune
-apt_repo
-rpm_repo
-arch_repo
 site
 log "repository ready"

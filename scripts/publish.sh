@@ -1,32 +1,42 @@
 #!/usr/bin/env bash
 # Builds the Termoak Linux packages from the published GitHub releases and
 # regenerates the signed APT, RPM and pacman repositories in a staging
-# directory; optionally copies it to the web root of pkg.termoak.com.
+# directory, updates the F-Droid repository (scripts/fdroid.sh: the Android
+# APKs of the GitHub releases, as they are) in its fdroid/ subdirectory and
+# optionally copies everything to the web root of pkg.termoak.com.
 #
 # Everything runs locally: downloads with curl, packaging, metadata and
 # signing in the termoak-packaging Docker image (docker/Dockerfile, built on
-# first use). Safe to run again: packages already in the staging repository
-# are not rebuilt, only the metadata and the index page are regenerated.
+# first use), the F-Droid index in the termoak-fdroid image
+# (docker/fdroid.Dockerfile). Safe to run again: packages already in the
+# staging repository are not rebuilt, only the metadata and the index page
+# are regenerated.
 #
 # Usage: scripts/publish.sh [options]
 #   --desktop VERSION   desktop release to package (default: latest published)
 #   --cli VERSION       CLI release (default: latest published cli-v*)
 #   --server VERSION    server release (default: latest published server-v*)
-#   --only LIST         packages to build, comma-separated
-#                       (termoak,termoak-cli,termoak-server; default: all)
-#   --no-build          build nothing; only regenerate metadata and index
+#   --only LIST         what to update, comma-separated
+#                       (termoak,termoak-cli,termoak-server,fdroid; default:
+#                       all). With only fdroid, the APT/RPM/pacman metadata
+#                       is left alone (the index page is regenerated).
+#   --no-build          build and download nothing; only regenerate metadata
+#                       and index
 #   --release N         package release of what is built now (default 1;
 #                       raise it to republish the same version with packaging
 #                       changes)
-#   --keep N            versions kept per package and arch (default 3)
+#   --keep N            versions kept per package and arch, and Android
+#                       releases kept in the F-Droid repository (default 3)
 #   --out DIR           staging repository (default: <repo>/out/repo)
 #   --deploy DIR        copy the staging repository to DIR when done
 #                       (e.g. /var/www/pkg.termoak.com)
-#   --rebuild-image     rebuild the termoak-packaging image first
+#   --rebuild-image     rebuild the termoak-packaging and termoak-fdroid
+#                       images first
 #
 # Environment: GNUPGHOME (default /root/.config/termoak/repo-gpg),
 # TERMOAK_REPO_KEY (fingerprint), GITHUB_TOKEN (optional, for API limits;
-# defaults to /root/.config/termoak/github-token when readable).
+# defaults to /root/.config/termoak/github-token when readable), and those
+# of scripts/fdroid.sh (TERMOAK_FDROID_KEYS, TERMOAK_FDROID_FINGERPRINT...).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -34,9 +44,12 @@ image=termoak-packaging
 gnupghome="${GNUPGHOME:-/root/.config/termoak/repo-gpg}"
 fpr="${TERMOAK_REPO_KEY:-BDD6B45E003E53F1B9DE70932C813822C95C7F5B}"
 org=TermoakSSH
+# SHA-256 of the certificate that signs the F-Droid index (keystore in
+# /root/.config/termoak/fdroid; scripts/fdroid.sh checks that they match).
+fdroid_fpr="${TERMOAK_FDROID_FINGERPRINT:-CB2FCCB0151AE3632E0578364B75CD7357FF5A09E6CB9F3624FAA22628A7C621}"
 
 want_desktop="" want_cli="" want_server=""
-only="termoak,termoak-cli,termoak-server"
+only="termoak,termoak-cli,termoak-server,fdroid"
 build=true release=1 keep=3 deploy="" rebuild_image=false
 out="$root/out/repo"
 
@@ -61,8 +74,13 @@ done
 
 [[ "$release" =~ ^[1-9][0-9]*$ ]] || { echo "--release must be a positive integer" >&2; exit 2; }
 [[ "$keep" =~ ^[1-9][0-9]*$ ]] || { echo "--keep must be a positive integer" >&2; exit 2; }
+linux="" fdroid=false
 for p in ${only//,/ }; do
-  case "$p" in termoak|termoak-cli|termoak-server) ;; *) echo "unknown package: $p" >&2; exit 2 ;; esac
+  case "$p" in
+    termoak|termoak-cli|termoak-server) linux="$linux $p" ;;
+    fdroid) fdroid=true ;;
+    *) echo "unknown package: $p" >&2; exit 2 ;;
+  esac
 done
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -151,7 +169,7 @@ mkdir -p "$work/dl"
 
 # --- releases --------------------------------------------------------------
 if $build; then
-  for pkg in ${only//,/ }; do
+  for pkg in $linux; do
     case "$pkg" in
       termoak) repo=desktop prefix=desktop-v ver="$want_desktop" ;;
       termoak-cli) repo=core prefix=cli-v ver="$want_cli" ;;
@@ -190,7 +208,19 @@ if $build; then
   done
 fi
 
+# --- F-Droid ---------------------------------------------------------------
+if $fdroid; then
+  fdroid_args=(--keep "$keep" --out "$out")
+  $build || fdroid_args+=(--no-build)
+  $rebuild_image && fdroid_args+=(--rebuild-image)
+  TERMOAK_FDROID_FINGERPRINT="$fdroid_fpr" GITHUB_TOKEN="$token" \
+    "$root/scripts/fdroid.sh" "${fdroid_args[@]}"
+fi
+
 # --- build, sign and index (in the container) ------------------------------
+# Without Linux packages in --only, only the index page is regenerated.
+site_only=0
+[ -n "$linux" ] || site_only=1
 log "building in $image"
 docker run --rm \
   -v "$root:/src:ro" \
@@ -198,6 +228,7 @@ docker run --rm \
   -v "$(cd "$out" && pwd):/repo" \
   -v "$gnupghome:/gnupg:ro" \
   -e FPR="$fpr" -e KEEP="$keep" -e PKG_RELEASE="$release" \
+  -e FDROID_FPR="$fdroid_fpr" -e SITE_ONLY="$site_only" \
   "$image" bash /src/scripts/build-repo.sh
 
 log "staging repository: $out"
@@ -209,8 +240,11 @@ if [ -n "$deploy" ]; then
   # Packages first, then the metadata that points to them; files no longer
   # in the staging repository are removed at the end.
   rsync -a --include='*/' --include='*.deb' --include='*.rpm' \
-    --include='*.pkg.tar.zst' --include='*.pkg.tar.zst.sig' --exclude='*' \
-    "$out"/ "$deploy"/
+    --include='*.pkg.tar.zst' --include='*.pkg.tar.zst.sig' --include='*.apk' \
+    --exclude='*' "$out"/ "$deploy"/
   rsync -a --delete-after --delay-updates "$out"/ "$deploy"/
   log "deployed"
+  if $fdroid && [ "$(realpath "$deploy")" = /var/www/pkg.termoak.com ]; then
+    "$root/scripts/fdroid.sh" --verify-remote
+  fi
 fi

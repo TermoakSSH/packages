@@ -1,0 +1,1 @@
+SSH client with sessions that never drop, an encrypted vault and team sharing
