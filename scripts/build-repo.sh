@@ -10,7 +10,7 @@
 # package), PKG_RELEASE (package release of the packages built now),
 # FDROID_FPR (SHA-256 of the F-Droid index certificate, for the index page),
 # SITE_ONLY=1 (only regenerate the index page: scripts/publish.sh --only
-# fdroid).
+# fdroid or flatpak).
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -314,6 +314,11 @@ versions_table() {
     [ -n "$v" ] || continue
     printf '<tr><td><code>%s</code></td><td>%s</td><td>%s</td></tr>\n' "$pkg" "$v" "$archs"
   done
+  # Flatpak: the version last built into the Flatpak repository.
+  if [ -s "$REPO/flatpak/VERSION" ] && [ -d "$REPO/flatpak/repo/objects" ]; then
+    printf '<tr><td><a href="#flatpak">com.termoak.Termoak</a> (Flatpak)</td><td>%s</td><td>x86_64</td></tr>\n' \
+      "$(head -n1 "$REPO/flatpak/VERSION")"
+  fi
   # Android: the newest version in the F-Droid repository.
   v="$(android_version)"
   if [ -n "$v" ]; then

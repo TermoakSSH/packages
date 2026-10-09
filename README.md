@@ -1,7 +1,8 @@
 # Termoak packages
 
 Packaging and signed repositories for [Termoak](https://termoak.com), served
-at **https://pkg.termoak.com**: APT, RPM and pacman for Linux, and an
+at **https://pkg.termoak.com**: APT, RPM, pacman and a
+[Flatpak repository](#linux-flatpak) for Linux, and an
 [F-Droid repository](#android-f-droid) for Android.
 
 | Package          | Contents                                                        | Architectures  |
@@ -29,6 +30,8 @@ docker/Dockerfile          tool image (Fedora): nfpm, apt-ftparchive, createrepo
                            rpmsign, repo-add, gpg, rsvg-convert
 docker/fdroid.Dockerfile   F-Droid tool image (Debian 13): fdroidserver, apksigner,
                            qrencode
+docker/flatpak.Dockerfile  Flatpak tool image (Debian 13): flatpak, flatpak-builder,
+                           appstream, flatpak-cargo-generator, Xvfb
 nfpm/<package>.yaml        nfpm configuration of each package
 files/termoak/             desktop entry (com.termoak.Termoak.desktop)
 files/termoak-server/      sysusers.d / tmpfiles.d snippets and maintainer scripts
@@ -40,9 +43,12 @@ scripts/publish.sh         downloads releases, builds, signs, regenerates the re
 scripts/build-repo.sh      the part of publish.sh that runs inside the tool image
 scripts/fdroid.sh          updates the F-Droid repository (called by publish.sh)
 scripts/build-fdroid.sh    the part of fdroid.sh that runs inside the F-Droid image
+scripts/flatpak.sh         builds the Flatpak and updates its repository (called by publish.sh)
+scripts/build-flatpak.sh   the part of flatpak.sh that runs inside the Flatpak image
 scripts/test-repo.sh       installs from the staging repo in distro containers
 tests/                     the per-distro test scripts used by test-repo.sh
 docs/fdroid/               draft for the official F-Droid repository (fdroiddata)
+docs/flathub/              steps and status of the Flathub submission
 ```
 
 Published layout (`out/repo` by default, then the web root):
@@ -61,6 +67,9 @@ fdroid/qr.svg  fdroid/qr.png                        QR code of the repository li
 fdroid/repo/{entry.jar,entry.json,index-v2.json,index-v1.jar,index-v1.json,diff/}
 fdroid/repo/Termoak-android-v<version>-{arm64-v8a,armeabi-v7a,universal}.apk
 fdroid/repo/{com.termoak/,icons*/,index.html,index.png,status/...}  (fdroidserver)
+flatpak/termoak.flatpakrepo  flatpak/com.termoak.Termoak.flatpakref
+flatpak/termoak.svg  flatpak/VERSION                 icon of the repo; version last built
+flatpak/repo/{config,summary,summary.sig,refs/,objects/,deltas/,...}  (OSTree, signed)
 ```
 
 fdroid's working directory (generated `config.yml`, metadata copy, and
@@ -115,9 +124,10 @@ What it does:
      stay in the directory for `pacman -U`.
    - `termoak.asc` / `termoak.gpg` (exported from the keyring) and
      `index.html` with the current versions.
-4. F-Droid (unless `--only` leaves it out): `scripts/fdroid.sh`, see
-   [Android (F-Droid)](#android-f-droid).
-5. With `--deploy DIR`: rsync of the packages and APKs first and then of everything
+4. F-Droid and Flatpak (unless `--only` leaves them out):
+   `scripts/fdroid.sh`, see [Android (F-Droid)](#android-f-droid), and
+   `scripts/flatpak.sh`, see [Linux (Flatpak)](#linux-flatpak).
+5. With `--deploy DIR`: rsync of the packages, APKs and Flatpak objects first and then of everything
    else with `--delete-after --delay-updates`, so clients never see metadata
    that points to missing files. **Files in DIR that are not in the staging
    repository are deleted.** If the staging directory is empty and DIR
@@ -126,8 +136,9 @@ What it does:
    was updated and DIR is the web root, `scripts/fdroid.sh --verify-remote`
    then checks what https://pkg.termoak.com/fdroid/repo serves.
 
-Other options: `--only termoak,termoak-cli,termoak-server,fdroid` (with only
-`fdroid`, the APT/RPM/pacman metadata is not touched), `--no-build`,
+Other options: `--only termoak,termoak-cli,termoak-server,fdroid,flatpak`
+(with only `fdroid` and/or `flatpak`, the APT/RPM/pacman metadata is not
+touched), `--flatpak-ref REF`, `--flatpak-dir DIR`, `--no-build`,
 `--release N`, `--keep N`, `--out DIR`, `--rebuild-image`. See
 `scripts/publish.sh --help`.
 
@@ -223,6 +234,76 @@ Caddy serves the index files (`entry.jar`, `index-v1.jar`, `index-v2.json`,
 
 **Official F-Droid repository.** A draft recipe for fdroiddata and the steps
 are in [`docs/fdroid/`](docs/fdroid/README.md).
+
+## Linux (Flatpak)
+
+Repository: **https://pkg.termoak.com/flatpak/repo**, an OSTree repository
+whose commits and summary are signed with the package key (fingerprint
+`BDD6B45E…7F5B`). Users add it with
+`flatpak remote-add --if-not-exists termoak https://pkg.termoak.com/flatpak/termoak.flatpakrepo`
+and `flatpak install termoak com.termoak.Termoak` (the runtime,
+`org.freedesktop.Platform//26.08`, comes from Flathub), or open
+`flatpak/com.termoak.Termoak.flatpakref` in a software center. Branch
+`stable`, x86_64.
+
+**What is published.** The desktop app built **from source** by
+flatpak-builder with the manifest of TermoakSSH/desktop
+([`flatpak/`](https://github.com/TermoakSSH/desktop/tree/main/flatpak) on
+`main`, or `--flatpak-ref`), which pins the release tag and vendors every
+crate of its `Cargo.lock` (`cargo-sources.json`): the same manifest that is
+prepared for Flathub ([docs/flathub](docs/flathub/README.md)). Unlike the
+other packages, this is compiled here, not taken from the release binaries:
+a release build with fat LTO, about 30 minutes with 2 jobs. The Flatpak
+updates through `flatpak update`; the app's own updater is off inside the
+sandbox.
+
+**What `scripts/flatpak.sh` does** (also on its own: `--desktop-ref`,
+`--desktop-dir`, `--out`, `--keep`, `--no-build`, `--no-smoke`, `--lint`,
+`--rebuild-image`, `--verify-remote`):
+
+1. Clones TermoakSSH/desktop at the ref (or uses `--desktop-dir`).
+2. In the `termoak-flatpak` image, with bubblewrap allowed
+   (`--cap-add SYS_ADMIN --cap-add NET_ADMIN` and seccomp, AppArmor and
+   `systempaths` unconfined; not `--privileged`): `flatpak-builder --install-deps-from=flathub
+   --disable-rofiles-fuse --repo=out/repo/flatpak/repo --gpg-sign=<key>`
+   commits `app/com.termoak.Termoak/x86_64/stable` (plus the `.Locale` and
+   `.Debug` refs), signed.
+3. `flatpak build-update-repo --generate-static-deltas --prune
+   --prune-depth=<keep>`: summary (signed, with the public key, title and
+   homepage), the `appstream`/`appstream2` branches for software centers and
+   static deltas; keeps `--keep` (3) commits per ref.
+4. Writes `termoak.flatpakrepo` and `com.termoak.Termoak.flatpakref` (with
+   `GPGKey=` the base64 of the binary public key, and `RuntimeRepo=` Flathub),
+   `termoak.svg` and `VERSION` (for the index page).
+5. Smoke test: adds the staging repository to the container's installation,
+   installs the app, checks `termoak-desktop --version` and that the window
+   starts under Xvfb (software Vulkan of the GL extension), and uninstalls
+   it.
+6. With `--lint`: Flathub's linter on the manifest and the repository.
+
+`--verify-remote` (run by `publish.sh --deploy /var/www/pkg.termoak.com`)
+checks the published repository as a user would, in a throwaway container:
+`flatpak --user remote-add` of `https://pkg.termoak.com/flatpak/termoak.flatpakrepo`,
+`flatpak --user install termoak com.termoak.Termoak` (signature checked with
+the key of the `.flatpakrepo`), `termoak-desktop --version`, and the MIME
+types of the `.flatpakrepo` and `.flatpakref`.
+
+The runtimes, the SDK, the GL extensions and org.flatpak.Builder (about
+5 GB) and flatpak-builder's downloads and cache are kept in
+`out/flatpak-cache/` between runs; delete it to free the space (the next
+build downloads them again).
+
+**On each new desktop release** (after updating the tag in the desktop
+repository's `flatpak/com.termoak.Termoak.yml`, see its README):
+
+```sh
+flock /root/.termoak-build.lock scripts/publish.sh --only flatpak --deploy /var/www/pkg.termoak.com
+```
+
+Caddy serves `.flatpakrepo` and `.flatpakref` as
+`application/vnd.flatpak.repo` and `application/vnd.flatpak.ref`, and the
+OSTree `config`, `summary*` and `refs/` with `Cache-Control: no-cache`
+(block `pkg.termoak.com` in `/etc/caddy/Caddyfile`).
 
 ## Package details
 
@@ -340,6 +421,8 @@ indexed but not installed by the tests (no emulation on the build host).
 - arm64 desktop builds.
 - Publishing the key to a keyserver (the instructions download it from
   pkg.termoak.com instead).
+- The Flathub submission ([steps](docs/flathub/README.md)) and an aarch64
+  Flatpak.
 - F-Droid screenshots (`fdroid/metadata/com.termoak/*/images/phoneScreenshots/`)
   and the inclusion in f-droid.org ([draft](docs/fdroid/README.md)).
 

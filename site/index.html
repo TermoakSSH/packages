@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Termoak packages</title>
-<meta name="description" content="Signed APT, RPM, pacman and F-Droid repositories for Termoak.">
+<meta name="description" content="Signed APT, RPM, pacman, Flatpak and F-Droid repositories for Termoak.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect x='16' y='16' width='480' height='480' rx='108' fill='%23182316'/%3E%3Cellipse cx='300' cy='300' rx='118' ry='150' transform='rotate(-28 300 300)' fill='%237d9a2c'/%3E%3Cpath d='M92 318l70 48-70 48' stroke='%23e8f0d8' stroke-width='30' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M182 414h92' stroke='%23e8f0d8' stroke-width='30' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
 :root {
@@ -85,8 +85,8 @@ footer { margin-top: 48px; color: var(--muted); font-size: .88rem; }
   </svg>
   <div>
     <h1>Termoak packages</h1>
-    <p data-lang="en">Signed Linux and Android (F-Droid) repositories for the Termoak SSH client and server.</p>
-    <p data-lang="es">Repositorios firmados de Linux y Android (F-Droid) del cliente y el servidor SSH Termoak.</p>
+    <p data-lang="en">Signed Linux (APT, RPM, pacman, Flatpak) and Android (F-Droid) repositories for the Termoak SSH client and server.</p>
+    <p data-lang="es">Repositorios firmados de Linux (APT, RPM, pacman, Flatpak) y Android (F-Droid) del cliente y el servidor SSH Termoak.</p>
   </div>
   <div class="lang" role="group" aria-label="Language">
     <button type="button" data-set-lang="en">English</button>
@@ -115,6 +115,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: .88rem; }
   <a href="#dnf">Fedora / RHEL</a>
   <a href="#zypper">openSUSE</a>
   <a href="#pacman">Arch Linux</a>
+  <a href="#flatpak">Flatpak</a>
   <a href="#fdroid">Android (F-Droid)</a>
   <a href="#key" data-lang="en">Signing key</a>
   <a href="#key" data-lang="es">Clave de firma</a>
@@ -167,6 +168,20 @@ sudo pacman -Sy termoak termoak-cli termoak-server</code></pre>
 <p class="muted" data-lang="en">Packages for <code>x86_64</code>; <code>termoak-cli</code> and <code>termoak-server</code> also for <code>aarch64</code> (Arch Linux ARM). The desktop app needs a Vulkan driver (<code>vulkan-radeon</code>, <code>vulkan-intel</code>, <code>nvidia-utils</code> or, without a GPU, <code>vulkan-swrast</code>) and a font such as <code>ttf-dejavu</code>.</p>
 <p class="muted" data-lang="es">Paquetes para <code>x86_64</code>; <code>termoak-cli</code> y <code>termoak-server</code> también para <code>aarch64</code> (Arch Linux ARM). La app de escritorio necesita un driver Vulkan (<code>vulkan-radeon</code>, <code>vulkan-intel</code>, <code>nvidia-utils</code> o, sin GPU, <code>vulkan-swrast</code>) y una fuente como <code>ttf-dejavu</code>.</p>
 
+<section id="flatpak">
+<h2>Linux (Flatpak)</h2>
+<p data-lang="en">The desktop app as a Flatpak, for any distribution (x86_64), sandboxed and updated with <code>flatpak update</code> or your software center. The runtime comes from <a href="https://flathub.org/setup">Flathub</a>, so add Flathub too if you don't have it:</p>
+<p data-lang="es">La app de escritorio como Flatpak, para cualquier distribución (x86_64), aislada y actualizada con <code>flatpak update</code> o tu centro de software. El runtime viene de <a href="https://flathub.org/es/setup">Flathub</a>, así que añade Flathub también si no lo tienes:</p>
+<pre><code>flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak remote-add --if-not-exists termoak https://pkg.termoak.com/flatpak/termoak.flatpakrepo
+flatpak install termoak com.termoak.Termoak
+flatpak run com.termoak.Termoak</code></pre>
+<p data-lang="en">Or open <a href="flatpak/com.termoak.Termoak.flatpakref">com.termoak.Termoak.flatpakref</a> with your software center (GNOME Software, KDE Discover). Add <code>--user</code> to the commands to install it only for your user.</p>
+<p data-lang="es">O abre <a href="flatpak/com.termoak.Termoak.flatpakref">com.termoak.Termoak.flatpakref</a> con tu centro de software (GNOME Software, KDE Discover). Añade <code>--user</code> a los comandos para instalarlo solo para tu usuario.</p>
+<p class="muted" data-lang="en">The repository is signed with the key below. The sandbox gives the app the network, the SSH agent, the keychain (Secret Service), notifications, your Downloads folder and read-only <code>~/.ssh</code> (to import <code>~/.ssh/config</code>); other files go through the system's file chooser, and the local terminal opens your shell on the host. Serial ports need <code>flatpak override --user --device=all com.termoak.Termoak</code>. Its data lives in <code>~/.var/app/com.termoak.Termoak</code>: to bring the hosts of "This device" from a package or AppImage install, copy <code>~/.local/share/termoak</code> to <code>~/.var/app/com.termoak.Termoak/data/termoak</code> with the app closed.</p>
+<p class="muted" data-lang="es">El repositorio se firma con la clave de abajo. El sandbox da a la app la red, el agente SSH, el llavero (Secret Service), las notificaciones, tu carpeta de Descargas y <code>~/.ssh</code> en solo lectura (para importar <code>~/.ssh/config</code>); el resto de archivos pasan por el selector de archivos del sistema, y la terminal local abre tu shell del sistema. Los puertos serie necesitan <code>flatpak override --user --device=all com.termoak.Termoak</code>. Sus datos están en <code>~/.var/app/com.termoak.Termoak</code>: para traer los servidores de "Este dispositivo" de una instalación con paquete o AppImage, copia <code>~/.local/share/termoak</code> a <code>~/.var/app/com.termoak.Termoak/data/termoak</code> con la app cerrada.</p>
+</section>
+
 <h2 data-lang="en">After installing the server</h2>
 <h2 data-lang="es">Después de instalar el servidor</h2>
 <p data-lang="en">The package creates the <code>termoak</code> system user, <code>/etc/termoak/config.toml</code> and <code>/var/lib/termoak</code>, but does not start anything. Review the configuration and then:</p>
@@ -201,8 +216,8 @@ sudo pacman -Sy termoak termoak-cli termoak-server</code></pre>
 <h2 data-lang="en">Signing key</h2>
 <h2 data-lang="es">Clave de firma</h2>
 <div class="card">
-  <p data-lang="en">Every Linux repository and package is signed with this OpenPGP key (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
-  <p data-lang="es">Todos los repositorios y paquetes de Linux se firman con esta clave OpenPGP (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
+  <p data-lang="en">Every Linux repository and package (Flatpak included) is signed with this OpenPGP key (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
+  <p data-lang="es">Todos los repositorios y paquetes de Linux (Flatpak incluido) se firman con esta clave OpenPGP (RSA 4096), <em>Termoak Packages (Ohz Digital SL) &lt;packages@termoak.com&gt;</em>:</p>
   <p class="fpr">@FINGERPRINT_SPACED@</p>
   <p><a href="termoak.asc">termoak.asc</a> (ASCII armored) · <a href="termoak.gpg">termoak.gpg</a> (binary, for APT <code>Signed-By</code>)</p>
 </div>

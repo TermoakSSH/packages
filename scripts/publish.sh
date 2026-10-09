@@ -3,12 +3,15 @@
 # regenerates the signed APT, RPM and pacman repositories in a staging
 # directory, updates the F-Droid repository (scripts/fdroid.sh: the Android
 # APKs of the GitHub releases, as they are) in its fdroid/ subdirectory and
-# optionally copies everything to the web root of pkg.termoak.com.
+# the Flatpak repository (scripts/flatpak.sh: built from source with the
+# manifest of TermoakSSH/desktop) in flatpak/, and optionally copies
+# everything to the web root of pkg.termoak.com.
 #
 # Everything runs locally: downloads with curl, packaging, metadata and
 # signing in the termoak-packaging Docker image (docker/Dockerfile, built on
 # first use), the F-Droid index in the termoak-fdroid image
-# (docker/fdroid.Dockerfile). Safe to run again: packages already in the
+# (docker/fdroid.Dockerfile), the Flatpak in the termoak-flatpak image
+# (docker/flatpak.Dockerfile). Safe to run again: packages already in the
 # staging repository are not rebuilt, only the metadata and the index page
 # are regenerated.
 #
@@ -17,9 +20,13 @@
 #   --cli VERSION       CLI release (default: latest published cli-v*)
 #   --server VERSION    server release (default: latest published server-v*)
 #   --only LIST         what to update, comma-separated
-#                       (termoak,termoak-cli,termoak-server,fdroid; default:
-#                       all). With only fdroid, the APT/RPM/pacman metadata
-#                       is left alone (the index page is regenerated).
+#                       (termoak,termoak-cli,termoak-server,fdroid,flatpak;
+#                       default: all). With only fdroid and/or flatpak, the
+#                       APT/RPM/pacman metadata is left alone (the index page
+#                       is regenerated).
+#   --flatpak-ref REF   branch or tag of TermoakSSH/desktop whose flatpak/
+#                       manifest is built (default: main)
+#   --flatpak-dir DIR   a local checkout of TermoakSSH/desktop instead
 #   --no-build          build and download nothing; only regenerate metadata
 #                       and index
 #   --release N         package release of what is built now (default 1;
@@ -30,8 +37,11 @@
 #   --out DIR           staging repository (default: <repo>/out/repo)
 #   --deploy DIR        copy the staging repository to DIR when done
 #                       (e.g. /var/www/pkg.termoak.com)
-#   --rebuild-image     rebuild the termoak-packaging and termoak-fdroid
-#                       images first
+#   --rebuild-image     rebuild the termoak-packaging, termoak-fdroid and
+#                       termoak-flatpak images first
+#
+# The Flatpak is a full Rust build: run publish.sh under the build lock
+# (flock /root/.termoak-build.lock scripts/publish.sh ...).
 #
 # Environment: GNUPGHOME (default /root/.config/termoak/repo-gpg),
 # TERMOAK_REPO_KEY (fingerprint), GITHUB_TOKEN (optional, for API limits;
@@ -49,7 +59,8 @@ org=TermoakSSH
 fdroid_fpr="${TERMOAK_FDROID_FINGERPRINT:-CB2FCCB0151AE3632E0578364B75CD7357FF5A09E6CB9F3624FAA22628A7C621}"
 
 want_desktop="" want_cli="" want_server=""
-only="termoak,termoak-cli,termoak-server,fdroid"
+only="termoak,termoak-cli,termoak-server,fdroid,flatpak"
+flatpak_ref="" flatpak_dir=""
 build=true release=1 keep=3 deploy="" rebuild_image=false
 out="$root/out/repo"
 
@@ -61,6 +72,8 @@ while [ $# -gt 0 ]; do
     --cli) want_cli="${2#v}"; shift 2 ;;
     --server) want_server="${2#v}"; shift 2 ;;
     --only) only="$2"; shift 2 ;;
+    --flatpak-ref) flatpak_ref="$2"; shift 2 ;;
+    --flatpak-dir) flatpak_dir="$2"; shift 2 ;;
     --no-build) build=false; shift ;;
     --release) release="$2"; shift 2 ;;
     --keep) keep="$2"; shift 2 ;;
@@ -74,11 +87,12 @@ done
 
 [[ "$release" =~ ^[1-9][0-9]*$ ]] || { echo "--release must be a positive integer" >&2; exit 2; }
 [[ "$keep" =~ ^[1-9][0-9]*$ ]] || { echo "--keep must be a positive integer" >&2; exit 2; }
-linux="" fdroid=false
+linux="" fdroid=false flatpak=false
 for p in ${only//,/ }; do
   case "$p" in
     termoak|termoak-cli|termoak-server) linux="$linux $p" ;;
     fdroid) fdroid=true ;;
+    flatpak) flatpak=true ;;
     *) echo "unknown package: $p" >&2; exit 2 ;;
   esac
 done
@@ -156,6 +170,12 @@ if [ -n "$deploy" ] && [ ! -d "$out/deb/pool" ] && [ -d "$deploy/deb/pool" ]; th
   log "seeding $out from $deploy"
   rsync -a "$deploy"/ "$out"/
 fi
+# The same for the Flatpak repository (its older commits).
+if [ -n "$deploy" ] && [ ! -d "$out/flatpak/repo/objects" ] && [ -d "$deploy/flatpak/repo/objects" ]; then
+  log "seeding $out/flatpak from $deploy"
+  mkdir -p "$out/flatpak"
+  rsync -a "$deploy/flatpak"/ "$out/flatpak"/
+fi
 
 if $rebuild_image || ! docker image inspect "$image" >/dev/null 2>&1; then
   log "building the $image image"
@@ -217,6 +237,16 @@ if $fdroid; then
     "$root/scripts/fdroid.sh" "${fdroid_args[@]}"
 fi
 
+# --- Flatpak ---------------------------------------------------------------
+if $flatpak; then
+  flatpak_args=(--keep "$keep" --out "$out")
+  $build || flatpak_args+=(--no-build)
+  $rebuild_image && flatpak_args+=(--rebuild-image)
+  [ -n "$flatpak_ref" ] && flatpak_args+=(--desktop-ref "$flatpak_ref")
+  [ -n "$flatpak_dir" ] && flatpak_args+=(--desktop-dir "$flatpak_dir")
+  GNUPGHOME="$gnupghome" TERMOAK_REPO_KEY="$fpr" "$root/scripts/flatpak.sh" "${flatpak_args[@]}"
+fi
+
 # --- build, sign and index (in the container) ------------------------------
 # Without Linux packages in --only, only the index page is regenerated.
 site_only=0
@@ -237,14 +267,22 @@ log "staging repository: $out"
 if [ -n "$deploy" ]; then
   [ -d "$deploy" ] || { echo "$deploy does not exist" >&2; exit 1; }
   log "deploying to $deploy"
-  # Packages first, then the metadata that points to them; files no longer
-  # in the staging repository are removed at the end.
-  rsync -a --include='*/' --include='*.deb' --include='*.rpm' \
+  # Packages (and the Flatpak repository's objects and deltas) first, then
+  # the metadata that points to them; files no longer in the staging
+  # repository are removed at the end. The OSTree repository's tmp/ and
+  # lock stay out.
+  rsync -a --exclude='/flatpak/repo/tmp/' --exclude='/flatpak/repo/.lock' \
+    --include='*/' --include='*.deb' --include='*.rpm' \
     --include='*.pkg.tar.zst' --include='*.pkg.tar.zst.sig' --include='*.apk' \
+    --include='/flatpak/repo/objects/**' --include='/flatpak/repo/deltas/**' \
     --exclude='*' "$out"/ "$deploy"/
-  rsync -a --delete-after --delay-updates "$out"/ "$deploy"/
+  rsync -a --delete-after --delay-updates \
+    --exclude='/flatpak/repo/tmp/' --exclude='/flatpak/repo/.lock' "$out"/ "$deploy"/
   log "deployed"
   if $fdroid && [ "$(realpath "$deploy")" = /var/www/pkg.termoak.com ]; then
     "$root/scripts/fdroid.sh" --verify-remote
+  fi
+  if $flatpak && [ "$(realpath "$deploy")" = /var/www/pkg.termoak.com ]; then
+    "$root/scripts/flatpak.sh" --verify-remote
   fi
 fi
